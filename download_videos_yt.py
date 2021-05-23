@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 from random import choice
 from convert_audio_to_video import convert
 from upload_video_to_fb import upload_video
+import datetime
 
 
 DB_URL = os.getenv('DATABASE_URL')
@@ -25,10 +26,9 @@ DB_CREDENTIALS = {
     'PORT': DEFAULT_URL.port
 }
 
-YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY') or "AIzaSyDCrDHr6LVvfTvbIcbhi_oxlJ5LfWHCGYg"
+YOUTUBE_API_KEY = os.getenv('YOUTUBE_API_KEY')
 
-YOUTUBE_PLAYLIST_URL = os.getenv('YOUTUBE_PLAYLIST_URL') or \
-                       'https://youtube.com/playlist?list=PLIYelo-VfHm8l5GXV0-exxU5jJ2Uf2acG'
+YOUTUBE_PLAYLIST_URL = os.getenv('YOUTUBE_PLAYLIST_URL')
 
 
 def retrieve_videos_urls():
@@ -112,6 +112,7 @@ def create_database_connection():
 
 
 def update_videos_url_from_playlist():
+    print("Start update urls in DB: ", datetime.datetime.now())
     con = create_database_connection()
     cur = con.cursor()
     # cur.execute('''DROP TABLE IF EXISTS VIDEOS;''')
@@ -126,10 +127,12 @@ def update_videos_url_from_playlist():
     con.commit()
     print("Table created successfully")
     save_in_db_urls(con, retrieve_videos_urls())
+    print("Finish update urls in DB: ", datetime.datetime.now())
     con.close()
 
 
 def download_random_song():
+    print("Start download random song: ", datetime.datetime.now())
     con = create_database_connection()
     cur = con.cursor()
     cur.execute('''SELECT ID, URL, TITLE FROM VIDEOS WHERE UPLOAD IS FALSE''')
@@ -140,10 +143,10 @@ def download_random_song():
 
     selected_song = None
     video_name = None
+    print("Select random song from: ", len(songs))
     while True:
-        print(songs)
         random_song = choice(songs)
-        print(random_song)
+        print("Selected random song: ", random_song)
         try:
             download_audio(random_song[1])
             video_name = random_song[2]
@@ -153,10 +156,15 @@ def download_random_song():
             selected_song = random_song[0]
             break
 
+    print("Finish download random song: ", datetime.datetime.now())
     if selected_song is not None:
+        print("Start convert and upload to FB random song: ", datetime.datetime.now())
         convert()
+        print("Finish convert random song: ", datetime.datetime.now())
         response = upload_video(video_name)
+        print("Finish upload to FB random song: ", datetime.datetime.now())
         if response[0]:
+            print("Start mark as upload to FB random song in DB: ", datetime.datetime.now())
             update_video_as_uploaded(selected_song, response[1])
 
 
@@ -167,8 +175,7 @@ def update_video_as_uploaded(selected_song, id_post):
     con.commit()
     cur.close()
     con.close()
-    pass
 
 
 download_random_song()
-# update_videos_url_from_playlist()
+update_videos_url_from_playlist()
