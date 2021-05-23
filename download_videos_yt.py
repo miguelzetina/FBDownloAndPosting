@@ -7,7 +7,7 @@ from urllib import parse
 from googleapiclient import discovery
 from urllib.parse import parse_qs, urlparse
 from random import choice
-
+from convert_audio_to_video import convert
 
 DB_URL = os.getenv('DATABASE_URL')
 
@@ -129,21 +129,21 @@ def update_videos_url_from_playlist():
 def download_random_song():
     con = create_database_connection()
     cur = con.cursor()
-    cur.execute('''SELECT ID, URL FROM VIDEOS WHERE UPLOAD IS FALSE''')
+    cur.execute('''SELECT ID, URL, TITLE FROM VIDEOS WHERE UPLOAD IS FALSE''')
     result = cur.fetchall()
     cur.close()
     con.close()
     songs = [el for el in result]
 
     selected_song = None
-    file_path_selected_song = None
+    video_name = None
     while True:
         print(songs)
         random_song = choice(songs)
         print(random_song)
         try:
-            file_path_selected_song = download_audio(random_song[1])
-            print("File path of downloaded song: ", file_path_selected_song)
+            download_audio(random_song[1])
+            video_name = random_song[2]
         except PytubeError:
             continue
         else:
@@ -151,12 +151,12 @@ def download_random_song():
             break
 
     if selected_song is not None:
-        upload_song(file_path_selected_song)
+        convert()
+        upload_video(video_name)
 
 
-def upload_song(file_path_song):
-    print(file_path_song)
-    print("Try to upload song")
+def upload_video(video_name):
+    print("Trying to upload video to FB page")
     pass
 
 
