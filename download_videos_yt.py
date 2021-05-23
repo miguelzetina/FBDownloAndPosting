@@ -126,7 +126,7 @@ def update_videos_url_from_playlist():
     con.close()
 
 
-def download_shuffle_song():
+def download_random_song():
     con = create_database_connection()
     cur = con.cursor()
     cur.execute('''SELECT ID, URL FROM VIDEOS WHERE UPLOAD IS FALSE''')
@@ -160,5 +160,5 @@ def upload_song(file_path_song):
     pass
 
 
-download_shuffle_song()
+download_random_song()
 # update_videos_url_from_playlist()
