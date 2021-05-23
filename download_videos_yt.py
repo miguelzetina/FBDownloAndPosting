@@ -8,15 +8,16 @@ from googleapiclient import discovery
 from urllib.parse import parse_qs, urlparse
 from random import choice
 from convert_audio_to_video import convert
+from upload_video_to_fb import upload_video
+
 
 DB_URL = os.getenv('DATABASE_URL')
 
-# DEFAULT_URL = parse.urlparse(DB_URL)
-DEFAULT_URL = parse.urlparse("postgres://jzilhsobslcxmp:c250991a92a256edc357e8a60a5094e3263c24bbe9a1c58e84e474eb77710985@ec2-54-163-254-204.compute-1.amazonaws.com:5432/d8g16kbbf6antq")
+DEFAULT_URL = parse.urlparse(DB_URL)
 
 AUDIO_DOWNLOAD_DIR = os.getenv('AUDIO_DOWNLOAD_DIR')
 
-db_credentials = {
+DB_CREDENTIALS = {
     'NAME': DEFAULT_URL.path[1:],
     'USER': DEFAULT_URL.username,
     'PASSWORD': DEFAULT_URL.password,
@@ -90,6 +91,7 @@ def insert_video_in_db(con, video_data):
         print("Video URL already exists: ", video_data['url'])
         pass
     con.commit()
+    cur.close()
 
 
 def save_in_db_urls(con, list_videos_data):
@@ -99,11 +101,11 @@ def save_in_db_urls(con, list_videos_data):
 
 def create_database_connection():
     con = psycopg2.connect(
-        database=db_credentials['NAME'],
-        user=db_credentials['USER'],
-        password=db_credentials['PASSWORD'],
-        host=db_credentials['HOST'],
-        port=db_credentials['PORT']
+        database=DB_CREDENTIALS['NAME'],
+        user=DB_CREDENTIALS['USER'],
+        password=DB_CREDENTIALS['PASSWORD'],
+        host=DB_CREDENTIALS['HOST'],
+        port=DB_CREDENTIALS['PORT']
     )
     print("Database opened successfully")
     return con
@@ -118,7 +120,8 @@ def update_videos_url_from_playlist():
         ID      SERIAL  PRIMARY KEY,
         URL     TEXT    NOT NULL    UNIQUE,
         TITLE   TEXT    NOT NULL,
-        UPLOAD  BOOLEAN NOT NULL DEFAULT FALSE
+        UPLOAD  BOOLEAN NOT NULL DEFAULT FALSE,
+        ID_FB_POST  TEXT    UNIQUE
     );''')
     con.commit()
     print("Table created successfully")
@@ -152,11 +155,18 @@ def download_random_song():
 
     if selected_song is not None:
         convert()
-        upload_video(video_name)
+        response = upload_video(video_name)
+        if response[0]:
+            update_video_as_uploaded(selected_song, response[1])
 
 
-def upload_video(video_name):
-    print("Trying to upload video to FB page")
+def update_video_as_uploaded(selected_song, id_post):
+    con = create_database_connection()
+    cur = con.cursor()
+    cur.execute('''UPDATE VIDEOS SET ID_FB_POST = '{0}', UPLOAD=TRUE WHERE ID = {1}'''.format(id_post, selected_song))
+    con.commit()
+    cur.close()
+    con.close()
     pass
 
 
