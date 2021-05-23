@@ -15,4 +15,4 @@ def convert():
                           codec='libx264',
                           audio_codec='aac',
                           temp_audiofile='temp-audio.m4a',
-                          remove_temp=True)
+                          remove_temp=True, threads=10, logger='bar')
